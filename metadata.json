@@ -1,0 +1,7 @@
+{
+  "name": "Tennis Connect Web",
+  "description": "A social web platform for tennis players to find courts, check in, and connect with partners.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
