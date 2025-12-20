@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { User, SkillLevel } from '../types';
-import { Edit2, Save, X, Calendar, Trophy, Phone } from 'lucide-react';
+import { Edit2, Save, X, Calendar, Trophy, Phone, MapPin } from 'lucide-react';
 import { MockService } from '../services/mockService';
 
 export const Profile: React.FC = () => {
@@ -73,6 +73,12 @@ export const Profile: React.FC = () => {
                         onChange={e => setFormData({...formData, name: e.target.value})}
                     />
                     
+                    <Input 
+                        label="Location (City, State)" 
+                        value={formData.location || ''} 
+                        onChange={e => setFormData({...formData, location: e.target.value})}
+                    />
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Skill Level</label>
                         <select
@@ -110,8 +116,13 @@ export const Profile: React.FC = () => {
                 <div className="space-y-6">
                     <div>
                         <h2 className="text-2xl font-bold text-gray-900">{user.name}</h2>
-                        <div className="flex items-center gap-2 text-gray-500 mt-1">
-                            <Phone size={16} /> {user.phoneNumber}
+                        <div className="flex flex-col gap-1 mt-1 text-gray-500">
+                            <div className="flex items-center gap-2">
+                                <Phone size={16} /> {user.phoneNumber}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <MapPin size={16} /> {user.location || "Earth"}
+                            </div>
                         </div>
                     </div>
 

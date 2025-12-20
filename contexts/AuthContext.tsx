@@ -4,7 +4,7 @@ import { MockService } from '../services/mockService';
 
 interface AuthContextType extends AuthState {
   login: (phoneNumber: string) => Promise<void>;
-  signup: (name: string, phoneNumber: string, skillLevel: any) => Promise<void>;
+  signup: (name: string, phoneNumber: string, location: string) => Promise<void>;
   verifyOtp: (phoneNumber: string, otp: string) => Promise<boolean>;
   sendOtp: (phoneNumber: string) => Promise<void>;
   logout: () => void;
@@ -48,8 +48,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setState({ user, isAuthenticated: true, isLoading: false });
   };
 
-  const signup = async (name: string, phoneNumber: string, skillLevel: any) => {
-    const user = await MockService.signup({ name, phoneNumber, skillLevel, bio: "New player ready to hit!" });
+  const signup = async (name: string, phoneNumber: string, location: string) => {
+    const user = await MockService.signup({ 
+      name, 
+      phoneNumber, 
+      location, 
+      skillLevel: 'Beginner', // Default for new signups
+      bio: "New player ready to hit!" 
+    });
     localStorage.setItem('tennis_user', JSON.stringify(user));
     setState({ user, isAuthenticated: true, isLoading: false });
   };

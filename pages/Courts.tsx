@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Court } from '../types';
 import { MockService } from '../services/mockService';
-import { MapPin, Users, Sun, Clock, Search, List, Map as MapIcon, Navigation } from 'lucide-react';
-import { Input } from '../components/ui/Input';
+import { MapPin, Users, Clock, Search } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
-// Component to recenter map when location changes
+const BRAND_GREEN = "#059669";
+
 function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
   useEffect(() => {
@@ -21,7 +21,6 @@ export const Courts: React.FC = () => {
   const [courts, setCourts] = useState<Court[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const navigate = useNavigate();
 
@@ -33,7 +32,6 @@ export const Courts: React.FC = () => {
     };
     fetchCourts();
 
-    // Get user location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -42,14 +40,11 @@ export const Courts: React.FC = () => {
             lng: position.coords.longitude
           });
         },
-        (error) => {
-          console.log("Location permission denied or unavailable, using default.", error);
-          // Default to Central Park
+        () => {
           setUserLocation({ lat: 40.785091, lng: -73.968285 });
         }
       );
     } else {
-        // Fallback default
         setUserLocation({ lat: 40.785091, lng: -73.968285 });
     }
   }, []);
@@ -63,168 +58,165 @@ export const Courts: React.FC = () => {
     return L.divIcon({
       className: 'custom-marker-icon',
       html: `
-        <div class="relative">
-            <div class="w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center ${playerCount > 0 ? 'bg-emerald-600' : 'bg-gray-700'}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-            </div>
-            ${playerCount > 0 ? `<div class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center border border-white">${playerCount}</div>` : ''}
+        <div class="relative group transition-all duration-300 transform hover:scale-110">
+            <svg width="42" height="50" viewBox="0 0 40 48" fill="none" xmlns="http://www.w3.org/2000/svg" class="drop-shadow-[0_8px_12px_rgba(0,0,0,0.35)]">
+                <path d="M20 48C20 48 0 31.2 0 19.2C0 8.59604 8.95431 0 20 0C31.0457 0 40 8.59604 40 19.2C40 31.2 20 48 20 48Z" fill="${BRAND_GREEN}"/>
+                <circle cx="20" cy="19" r="14" fill="white"/>
+                <circle cx="20" cy="19" r="6" fill="${BRAND_GREEN}"/>
+            </svg>
+            ${playerCount > 0 ? `
+                <div class="absolute -top-1 -right-1 min-w-[22px] h-[22px] bg-[#ef4444] rounded-full text-white text-[10px] font-black flex items-center justify-center border-2 border-white px-1 shadow-lg">
+                    ${playerCount}
+                </div>
+            ` : ''}
         </div>
       `,
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32]
+      iconSize: [42, 50],
+      iconAnchor: [21, 50],
+      popupAnchor: [0, -50]
     });
   };
 
   const UserLocationIcon = L.divIcon({
       className: 'custom-marker-icon',
       html: `
-        <div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg ring-4 ring-blue-500/30"></div>
+        <div class="relative flex items-center justify-center">
+            <div class="absolute w-12 h-12 bg-blue-500/20 rounded-full animate-ping"></div>
+            <div class="w-6 h-6 bg-white rounded-full border-[6px] border-blue-500 shadow-2xl"></div>
+        </div>
       `,
-      iconSize: [16, 16],
-      iconAnchor: [8, 8]
+      iconSize: [40, 40],
+      iconAnchor: [20, 20]
   });
 
-  if (loading || !userLocation) return <div className="flex justify-center items-center h-[calc(100vh-100px)]"><div className="animate-spin h-8 w-8 border-4 border-emerald-500 rounded-full border-t-transparent"></div></div>;
+  if (loading || !userLocation) {
+    return (
+        <div className="flex flex-col justify-center items-center h-full gap-4">
+            <div className="animate-spin h-10 w-10 border-4 border-emerald-500 rounded-full border-t-transparent"></div>
+            <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Locating Courts...</p>
+        </div>
+    );
+  }
 
   return (
-    <div className="h-full flex flex-col relative">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 z-10">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Explore Courts</h1>
-          <p className="text-gray-500">Find active communities nearby.</p>
+    <div className="h-full flex flex-col space-y-8 pb-10">
+      {/* Search Header */}
+      <div className="space-y-6">
+        <div className="text-center sm:text-left">
+          <h1 className="text-5xl font-black text-[#0f172a] tracking-tight mb-2">Courts</h1>
+          <p className="text-gray-400 font-bold text-sm">Discover the best places to play.</p>
         </div>
         
-        <div className="flex gap-2 w-full md:w-auto">
-            <div className="relative flex-1 md:w-64">
-                <Input 
-                    label="" 
-                    placeholder="Search locations..." 
-                    value={search} 
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10 mb-0"
-                />
-                <Search className="absolute top-3 left-3 text-gray-400" size={18} />
+        {/* Full-width Centered Search */}
+        <div className="relative w-full max-w-2xl mx-auto sm:mx-0">
+            <input 
+                type="text"
+                placeholder="Search by city or zip code" 
+                value={search} 
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-14 pr-6 py-4 rounded-2xl border-2 border-gray-100 bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all shadow-sm font-bold text-lg text-gray-700 placeholder:text-gray-300"
+            />
+            <Search className="absolute top-[18px] left-5 text-gray-300" size={24} strokeWidth={2.5} />
+        </div>
+      </div>
+
+      {/* Map Container - High Contrast Styling */}
+      <div className="relative flex-1 min-h-[500px] h-[65vh] rounded-[3rem] overflow-hidden border-8 border-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.2)] bg-gray-50">
+        <MapContainer 
+            center={[userLocation.lat, userLocation.lng]} 
+            zoom={12} 
+            style={{ height: '100%', width: '100%' }}
+            zoomControl={false}
+        >
+            <TileLayer
+                className="map-tiles"
+                attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
+                url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            />
+            <RecenterMap lat={userLocation.lat} lng={userLocation.lng} />
+
+            <Marker position={[userLocation.lat, userLocation.lng]} icon={UserLocationIcon}>
+                 <Popup>Current Location</Popup>
+            </Marker>
+
+            {filteredCourts.map((court) => (
+                <Marker 
+                    key={court.id} 
+                    position={[court.lat, court.lng]}
+                    icon={createCustomIcon(court.playerCount)}
+                >
+                    <Popup className="custom-popup">
+                        <div className="w-full bg-white rounded-3xl overflow-hidden shadow-2xl">
+                            <div className="h-32 w-full relative">
+                                <img src={court.imageUrl} className="w-full h-full object-cover" alt={court.name} />
+                                <div className="absolute top-3 right-3 bg-[#059669] text-white px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg">{court.surfaceType}</div>
+                            </div>
+                            <div className="p-5">
+                                <h3 className="font-black text-gray-900 text-lg mb-1 leading-tight">{court.name}</h3>
+                                <div className="flex items-center gap-2 text-[11px] text-gray-400 mb-4 font-black uppercase tracking-tight">
+                                    <MapPin size={12} className="text-emerald-500"/> {court.address.split(',')[0]}
+                                </div>
+                                <div className="flex justify-between items-center mb-5">
+                                    <div className="flex items-center gap-2 text-[11px] font-black text-emerald-800 bg-emerald-50 px-3.5 py-2 rounded-xl uppercase tracking-[0.1em] border border-emerald-100">
+                                        <Users size={12}/> {court.playerCount} ACTIVE
+                                    </div>
+                                </div>
+                                <Button 
+                                    className="w-full py-4 rounded-2xl bg-[#059669] hover:bg-[#047857] text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-emerald-200"
+                                    onClick={() => navigate(`/court/${court.id}`)}
+                                >
+                                    Details
+                                </Button>
+                            </div>
+                        </div>
+                    </Popup>
+                </Marker>
+            ))}
+        </MapContainer>
+        
+        {/* Floating Tags */}
+        <div className="absolute top-8 left-8 z-[500] pointer-events-none">
+            <div className="bg-[#0f172a] text-white p-3 px-6 rounded-2xl shadow-2xl text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-3">
+                <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_#10b981]"></div>
+                Live Court Map
             </div>
+        </div>
+
+        {/* Custom Controls Container */}
+        <div className="absolute top-8 right-8 z-[500] flex flex-col gap-2">
             <button 
-                onClick={() => setViewMode(viewMode === 'map' ? 'list' : 'map')}
-                className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2 shadow-sm whitespace-nowrap"
+                onClick={() => navigate('/players')}
+                className="bg-white/90 backdrop-blur-md p-3 rounded-2xl shadow-xl border border-white/50 text-emerald-600 hover:scale-105 transition-transform"
             >
-                {viewMode === 'map' ? <><List size={18}/> List View</> : <><MapIcon size={18}/> Map View</>}
+                <Users size={24} />
             </button>
         </div>
       </div>
-
-      <div className="flex-1 rounded-xl overflow-hidden border border-gray-200 shadow-sm relative bg-white min-h-[500px]">
-        {viewMode === 'map' ? (
-             <MapContainer 
-                center={[userLocation.lat, userLocation.lng]} 
-                zoom={12} 
-                style={{ height: '100%', width: '100%' }}
-             >
-                <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <RecenterMap lat={userLocation.lat} lng={userLocation.lng} />
-
-                {/* Current User Location */}
-                <Marker position={[userLocation.lat, userLocation.lng]} icon={UserLocationIcon}>
-                     <Popup>You are here</Popup>
-                </Marker>
-
-                {filteredCourts.map((court) => (
-                    <Marker 
-                        key={court.id} 
-                        position={[court.lat, court.lng]}
-                        icon={createCustomIcon(court.playerCount)}
-                    >
-                        <Popup>
-                            <div className="w-full">
-                                <div className="h-24 w-full rounded-t-lg overflow-hidden relative">
-                                    <img src={court.imageUrl} className="w-full h-full object-cover" alt={court.name} />
-                                    <div className="absolute top-2 right-2 bg-white/90 px-1.5 py-0.5 rounded text-[10px] font-bold shadow-sm">{court.surfaceType}</div>
-                                </div>
-                                <div className="p-3">
-                                    <h3 className="font-bold text-gray-900 text-sm mb-1">{court.name}</h3>
-                                    <div className="flex items-center gap-1 text-xs text-gray-500 mb-2">
-                                        <Clock size={12}/> {court.hours}
-                                    </div>
-                                    <div className="flex justify-between items-center mb-3">
-                                        <div className="flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
-                                            <Users size={12}/> {court.playerCount} Playing
-                                        </div>
-                                    </div>
-                                    <Button 
-                                        size="sm" 
-                                        className="w-full text-xs py-1.5"
-                                        onClick={() => navigate(`/court/${court.id}`)}
-                                    >
-                                        Join Community
-                                    </Button>
-                                </div>
-                            </div>
-                        </Popup>
-                    </Marker>
-                ))}
-             </MapContainer>
-        ) : (
-            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-full overflow-y-auto">
-                {filteredCourts.map((court) => (
-                    <Link 
-                        key={court.id} 
-                        to={`/court/${court.id}`}
-                        className="group bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all hover:-translate-y-1 h-fit"
-                    >
-                        <div className="h-48 relative overflow-hidden">
-                        <img 
-                            src={court.imageUrl} 
-                            alt={court.name} 
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-2 py-1 rounded-md text-xs font-bold text-gray-800 shadow-sm">
-                            {court.surfaceType}
-                        </div>
-                        {court.playerCount > 0 && (
-                            <div className="absolute bottom-3 left-3 bg-emerald-500 text-white px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1 shadow-sm animate-pulse">
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
-                            {court.playerCount} active players
-                            </div>
-                        )}
-                        </div>
-                        
-                        <div className="p-5">
-                        <h3 className="font-bold text-lg text-gray-900 mb-1 group-hover:text-emerald-600 transition-colors">{court.name}</h3>
-                        <div className="flex items-start gap-2 text-gray-500 text-sm mb-4">
-                            <MapPin size={16} className="mt-0.5 shrink-0" />
-                            <span className="line-clamp-1">{court.address}</span>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div className="flex items-center gap-2 text-gray-600 bg-gray-50 p-2 rounded-lg">
-                            <Clock size={16} className="text-emerald-600" />
-                            <span className="truncate">{court.hours}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-gray-600 bg-gray-50 p-2 rounded-lg">
-                            <Sun size={16} className="text-orange-500" />
-                            <span>{court.surfaceType}</span>
-                            </div>
-                        </div>
-                        </div>
-                    </Link>
-                ))}
-                {filteredCourts.length === 0 && (
-                    <div className="col-span-full text-center py-20 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                        <div className="mx-auto h-12 w-12 text-gray-400 mb-3">
-                            <MapPin size={48} />
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900">No courts found</h3>
-                        <p className="text-gray-500">Try adjusting your search terms.</p>
-                    </div>
-                )}
-            </div>
-        )}
-      </div>
+      
+      <style>{`
+        .map-tiles {
+            /* Aggressive grayscale filter to make streets dark and background light */
+            filter: grayscale(1) contrast(1.2) brightness(0.95);
+        }
+        .leaflet-container {
+            background-color: #f1f5f9 !important;
+        }
+        .custom-popup .leaflet-popup-content-wrapper {
+            padding: 0;
+            background: transparent;
+            box-shadow: none;
+        }
+        .custom-popup .leaflet-popup-content {
+            margin: 0;
+            width: 260px !important;
+        }
+        .custom-popup .leaflet-popup-tip-container {
+            display: none;
+        }
+        .leaflet-zoom-animated {
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+      `}</style>
     </div>
   );
 };

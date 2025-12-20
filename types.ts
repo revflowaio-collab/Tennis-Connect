@@ -5,6 +5,7 @@ export interface User {
   name: string;
   phoneNumber: string;
   skillLevel: SkillLevel;
+  location?: string; // Added location field
   bio?: string;
   joinedAt: string;
   avatarUrl?: string;

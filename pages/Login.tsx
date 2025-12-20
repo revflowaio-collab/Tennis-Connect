@@ -3,7 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Smartphone, ArrowRight, KeyRound } from 'lucide-react';
+import { Smartphone, ArrowRight, ArrowLeft, KeyRound, MessageSquare, X } from 'lucide-react';
+
+const BRAND_GREEN = "#059669";
 
 export const Login: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -11,6 +13,7 @@ export const Login: React.FC = () => {
   const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showMockSms, setShowMockSms] = useState(false);
   
   const { login, sendOtp, verifyOtp } = useAuth();
   const navigate = useNavigate();
@@ -25,9 +28,9 @@ export const Login: React.FC = () => {
     setLoading(true);
     
     try {
-      // In a real app, we might check if user exists first, but here we just send OTP
       await sendOtp(phoneNumber);
       setStep('OTP');
+      setTimeout(() => setShowMockSms(true), 1000);
     } catch (err) {
       setError('Could not send OTP. Please try again.');
     } finally {
@@ -43,6 +46,7 @@ export const Login: React.FC = () => {
     try {
       const isValid = await verifyOtp(phoneNumber, otp);
       if (isValid) {
+        setShowMockSms(false);
         await login(phoneNumber);
         navigate('/courts');
       } else {
@@ -62,16 +66,12 @@ export const Login: React.FC = () => {
       const demoPhone = '+15550101';
       setPhoneNumber(demoPhone);
       setOtp('123456');
-      
-      // Simulate flow
       await sendOtp(demoPhone);
       setStep('OTP');
-      
-      // Short delay for visual effect
       setTimeout(async () => {
           await login(demoPhone);
           navigate('/courts');
-      }, 800);
+      }, 1200);
     } catch (err) {
       setError('Failed to log in with demo account.');
       setLoading(false);
@@ -79,119 +79,89 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-            <div className="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-emerald-200 shadow-xl">TC</div>
+    <div className="min-h-screen bg-white flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Back Button */}
+      <Link 
+        to="/" 
+        className="absolute top-8 left-8 p-3 rounded-2xl hover:bg-emerald-50 text-emerald-600 transition-all active:scale-90 group z-50 flex items-center gap-2"
+        aria-label="Back to home"
+      >
+        <ArrowLeft size={24} strokeWidth={3} className="group-hover:-translate-x-1 transition-transform" />
+      </Link>
+
+      {/* Mock SMS */}
+      {showMockSms && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-[100] animate-in slide-in-from-top duration-500">
+            <div className="bg-white/90 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-2xl p-4 flex items-start gap-4">
+                <div className="bg-blue-500 p-2 rounded-xl text-white"><MessageSquare size={20} /></div>
+                <div className="flex-1">
+                    <p className="text-sm text-gray-800 font-medium">MatchPoint: Your verification code is <span className="text-emerald-600 font-black">123456</span></p>
+                </div>
+                <button onClick={() => setShowMockSms(false)}><X size={16} /></button>
+            </div>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Tennis Connect
-        </h2>
+      )}
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+        <div className="flex justify-center mb-6">
+            <div 
+                className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg"
+                style={{ backgroundColor: BRAND_GREEN }}
+            >
+                MP
+            </div>
+        </div>
+        <h2 className="text-3xl font-black text-gray-900 tracking-tight">Welcome Back</h2>
+        <p className="mt-2 text-gray-500 font-medium">Verify your phone to continue.</p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-100">
+      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-gray-50/50 py-10 px-6 sm:px-10 border border-gray-100 rounded-[2rem] shadow-sm">
             {step === 'PHONE' ? (
                 <form className="space-y-6" onSubmit={handleSendOtp}>
-                    <div>
-                        <div className="relative">
-                            <Input
-                                label="Phone Number"
-                                type="tel"
-                                required
-                                value={phoneNumber}
-                                onChange={(e) => setPhoneNumber(e.target.value)}
-                                placeholder="+1 (555) 000-0000"
-                            />
-                            <div className="absolute top-[35px] right-3 text-gray-400">
-                                <Smartphone size={18} />
-                            </div>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">We'll send you a temporary code.</p>
-                    </div>
-
-                    {error && (
-                        <div className="rounded-md bg-red-50 p-4">
-                            <h3 className="text-sm font-medium text-red-800">{error}</h3>
-                        </div>
-                    )}
-
-                    <div>
-                        <Button type="submit" className="w-full" isLoading={loading}>
-                            Continue <ArrowRight size={16} className="ml-2"/>
-                        </Button>
-                    </div>
+                    <Input
+                        label="Phone Number"
+                        type="tel"
+                        required
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        placeholder="+1 (555) 000-0000"
+                        className="py-4 rounded-xl border-gray-200 text-lg font-bold"
+                    />
+                    <Button type="submit" className="w-full py-4 text-base font-black uppercase tracking-widest bg-[#059669]" isLoading={loading}>
+                        Send Code <ArrowRight size={18} className="ml-2"/>
+                    </Button>
                 </form>
             ) : (
                 <form className="space-y-6" onSubmit={handleVerify}>
-                    <div>
-                        <div className="relative">
-                            <Input
-                                label={`Enter code sent to ${phoneNumber}`}
-                                type="text"
-                                required
-                                value={otp}
-                                onChange={(e) => setOtp(e.target.value)}
-                                placeholder="123456"
-                                maxLength={6}
-                                className="tracking-widest text-center text-lg"
-                                autoFocus
-                            />
-                            <div className="absolute top-[35px] right-3 text-gray-400">
-                                <KeyRound size={18} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {error && (
-                        <div className="rounded-md bg-red-50 p-4">
-                            <h3 className="text-sm font-medium text-red-800">{error}</h3>
-                        </div>
-                    )}
-
-                    <div className="space-y-3">
-                        <Button type="submit" className="w-full" isLoading={loading}>
-                            Sign in
-                        </Button>
-                        <button 
-                            type="button"
-                            onClick={() => { setStep('PHONE'); setError(''); }}
-                            className="w-full text-center text-sm text-gray-600 hover:text-emerald-600"
-                        >
-                            Change phone number
-                        </button>
-                    </div>
+                    <Input
+                        label="Verification Code"
+                        type="text"
+                        required
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        placeholder="123456"
+                        maxLength={6}
+                        className="tracking-[1em] text-center text-2xl font-black py-5 rounded-xl border-gray-200"
+                    />
+                    <Button type="submit" className="w-full py-4 text-base font-black uppercase tracking-widest bg-[#059669]" isLoading={loading}>
+                        Verify Code
+                    </Button>
                 </form>
             )}
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or continue with</span>
-              </div>
+            <div className="mt-8 pt-8 border-t border-gray-200">
+                <button
+                    onClick={handleDemoLogin}
+                    className="w-full py-4 text-xs font-black uppercase tracking-widest text-gray-400 hover:text-emerald-600 transition-colors"
+                >
+                    Demo Access
+                </button>
+                <div className="mt-4 text-center text-sm">
+                    <span className="text-gray-500">New here? </span>
+                    <Link to="/signup" className="font-black text-emerald-600">Join the community</Link>
+                </div>
             </div>
-
-            <div className="mt-6 grid grid-cols-1 gap-3">
-              <button
-                type="button"
-                onClick={handleDemoLogin}
-                disabled={loading}
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {loading && step === 'OTP' && otp === '123456' ? 'Signing in...' : 'Demo User Access'}
-              </button>
-            </div>
-          </div>
-          
-          <div className="mt-6 text-center text-sm">
-             <span className="text-gray-600">Don't have an account? </span>
-             <Link to="/signup" className="font-medium text-emerald-600 hover:text-emerald-500">
-               Sign up
-             </Link>
-          </div>
         </div>
       </div>
     </div>
