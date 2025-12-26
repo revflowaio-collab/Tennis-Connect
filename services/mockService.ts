@@ -1,3 +1,4 @@
+
 import { Court, User, CheckIn, SkillLevel } from '../types';
 
 // Initial Mock Data
@@ -5,7 +6,7 @@ const MOCK_COURTS: Court[] = [
   {
     id: 'c1',
     name: "Central Park Tennis Center",
-    address: "Central Park West & 96th St, New York, NY",
+    address: "Central Park West & 96th St, New York, NY 10024",
     surfaceType: "Hard",
     hours: "6am - 10pm",
     playerCount: 3,
@@ -18,7 +19,7 @@ const MOCK_COURTS: Court[] = [
   {
     id: 'c2',
     name: "Golden Gate Park Courts",
-    address: "Golden Gate Park, San Francisco, CA",
+    address: "Golden Gate Park, San Francisco, CA 94117",
     surfaceType: "Clay",
     hours: "Dawn - Dusk",
     playerCount: 1,
@@ -31,7 +32,7 @@ const MOCK_COURTS: Court[] = [
   {
     id: 'c3',
     name: "Venice Beach Tennis",
-    address: "1800 Ocean Front Walk, Venice, CA",
+    address: "1800 Ocean Front Walk, Venice, CA 90291",
     surfaceType: "Hard",
     hours: "6am - 9pm",
     playerCount: 5,
@@ -44,7 +45,7 @@ const MOCK_COURTS: Court[] = [
   {
     id: 'c4',
     name: "Wimbledon Common",
-    address: "London, UK",
+    address: "London, UK SW19 4UH",
     surfaceType: "Grass",
     hours: "8am - 8pm",
     playerCount: 0,
@@ -53,6 +54,32 @@ const MOCK_COURTS: Court[] = [
     imageUrl: "https://picsum.photos/800/400?random=4",
     lat: 51.435,
     lng: -0.214
+  },
+  {
+    id: 'c5',
+    name: "Flamingo Park Tennis",
+    address: "1200 Meridian Ave, Miami Beach, FL 33139",
+    surfaceType: "Clay",
+    hours: "7am - 9pm",
+    playerCount: 8,
+    amenities: ["17 Courts", "Vending Machines", "Pro Shop"],
+    description: "One of the premier tennis centers in South Beach.",
+    imageUrl: "https://picsum.photos/800/400?random=5",
+    lat: 25.782,
+    lng: -80.137
+  },
+  {
+    id: 'c6',
+    name: "Caswell Tennis Center",
+    address: "2312 Shoal Creek Blvd, Austin, TX 78705",
+    surfaceType: "Hard",
+    hours: "8am - 10pm",
+    playerCount: 2,
+    amenities: ["Lights", "Pro Shop", "Showers"],
+    description: "Historical tennis center serving the Austin community since 1946.",
+    imageUrl: "https://picsum.photos/800/400?random=6",
+    lat: 30.291,
+    lng: -97.749
   }
 ];
 

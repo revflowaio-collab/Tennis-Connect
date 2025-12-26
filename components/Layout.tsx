@@ -1,159 +1,242 @@
-import React from 'react';
+
+import React, { useMemo } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { MapPin, Users, UserCircle, LogOut, X, ChevronRight, Menu } from 'lucide-react';
 
-const BRAND_GREEN = "#059669";
+// Tennis ball SVG placeholder
+export const LOGO_DATA_URI = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0iI2NjZmYwMCIvPjxwYXRoIGQ9Ik0yNSAxMCBBNDAgNDAgMCAwIDEgMjUgOTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSI0Ii8+PHBhdGggZD0iTTc1IDEwIEE0MCA0MCAwIDAgMCA3NSA5MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjQiLz48L3N2Zz4=";
+
+// Facebook-style silhouette SVG
+const ProfileSilhouette = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full text-gray-400 bg-gray-100" fill="currentColor">
+    <circle cx="50" cy="50" r="50" fill="#E5E7EB" />
+    <circle cx="50" cy="35" r="18" fill="#9CA3AF" />
+    <path d="M50 58c-20 0-35 12-35 24v4h70v-4c0-12-15-24-35-24z" fill="#9CA3AF" />
+  </svg>
+);
 
 export const Layout: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
+  // Define nav items with specific color schemes
+  const navItems = [
+    { 
+      name: 'Courts', 
+      path: '/courts', 
+      icon: MapPin, 
+      desc: 'Find local play spots',
+      activeColor: 'bg-emerald-600',
+      textColor: 'text-emerald-500',
+      shadowColor: 'shadow-emerald-900/40',
+      glowColor: 'rgba(16, 185, 129, 0.5)'
+    },
+    { 
+      name: 'Players', 
+      path: '/players', 
+      icon: Users, 
+      desc: 'Connect with partners',
+      activeColor: 'bg-blue-600',
+      textColor: 'text-blue-500',
+      shadowColor: 'shadow-blue-900/40',
+      glowColor: 'rgba(37, 99, 235, 0.5)'
+    },
+    { 
+      name: 'Profile', 
+      path: '/profile', 
+      icon: UserCircle, 
+      desc: 'Your stats & skill',
+      activeColor: 'bg-indigo-600',
+      textColor: 'text-indigo-500',
+      shadowColor: 'shadow-indigo-900/40',
+      glowColor: 'rgba(79, 70, 229, 0.5)'
+    },
+  ];
+
+  // Calculate current theme based on path
+  const currentTheme = useMemo(() => {
+    const item = navItems.find(i => location.pathname.startsWith(i.path));
+    return item || navItems[0];
+  }, [location.pathname]);
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/');
   };
 
-  const navItems = [
-    { to: '/courts', icon: MapPin, label: 'Courts' },
-    { to: '/players', icon: Users, label: 'Players' },
-    { to: '/profile', icon: UserCircle, label: 'Profile' },
-  ];
-
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex flex-col">
-      {/* Universal Header (Mobile & Desktop) */}
-      <header className="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
-        {/* Top Left: MP Green Square */}
-        <div className="flex items-center gap-3">
-            <div 
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-emerald-200"
-                style={{ backgroundColor: BRAND_GREEN }}
-            >
-                MP
-            </div>
-            <span className="font-black text-xl text-[#0f172a] tracking-tight hidden sm:inline-block">MatchPoint</span>
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col md:flex-row font-['Inter']">
+      
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex flex-col w-64 bg-[#0f172a] text-white h-screen sticky top-0 overflow-y-auto border-r border-white/5 shadow-2xl z-50">
+        <div 
+          className="p-8 mb-2 flex items-center gap-3 group cursor-pointer transition-all duration-500" 
+          onClick={() => navigate('/')}
+        >
+          <img 
+            src={LOGO_DATA_URI} 
+            alt="Logo" 
+            className="w-6 h-6 transition-all duration-500 group-hover:rotate-12" 
+            style={{ filter: `drop-shadow(0 0 8px ${currentTheme.glowColor})` }}
+          />
+          <span className={`text-base font-black tracking-tighter uppercase transition-all duration-500 ${currentTheme.textColor}`}>
+            SecondServed
+          </span>
         </div>
 
-        {/* Center: Branding (optional for symmetry) */}
-        <div className="sm:hidden font-black text-lg text-[#0f172a] tracking-tight">MatchPoint</div>
+        <nav className="flex-1 px-5 space-y-2">
+          <p className="px-3 text-[9px] font-black uppercase tracking-[0.4em] text-gray-500 mb-4">Menu</p>
+          {navItems.map((item) => {
+            const isActive = location.pathname.startsWith(item.path);
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={`flex items-center justify-between p-3 rounded-xl transition-all duration-300 group ${
+                  isActive
+                    ? `${item.activeColor} text-white shadow-lg ${item.shadowColor}`
+                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <item.icon size={16} className="transition-transform group-hover:scale-110" strokeWidth={isActive ? 3 : 2} />
+                  <span className="font-black text-[10px] uppercase tracking-[0.2em]">{item.name}</span>
+                </div>
+                <ChevronRight size={14} className={`transition-all duration-300 ${isActive ? 'translate-x-1 opacity-100' : 'opacity-0 -translate-x-2'}`} />
+              </NavLink>
+            );
+          })}
+        </nav>
 
-        {/* Top Right: Hamburger Menu */}
+        <div className="p-6 mt-auto border-t border-white/5">
+            <div className="flex items-center gap-3 mb-4 px-1">
+                <div className="w-8 h-8 rounded-lg overflow-hidden bg-gray-800 border border-white/10 shrink-0">
+                    <ProfileSilhouette />
+                </div>
+                <div className="min-w-0">
+                    <p className="text-[10px] font-black truncate uppercase tracking-wider">{user?.name}</p>
+                    <p className={`text-[8px] font-black uppercase tracking-widest transition-colors duration-500 ${currentTheme.textColor}`}>{user?.skillLevel}</p>
+                </div>
+            </div>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 p-2 text-gray-500 hover:text-red-400 border border-white/5 hover:border-red-500/20 rounded-lg transition-all group font-black text-[9px] uppercase tracking-[0.3em]"
+          >
+            <LogOut size={12} />
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      {/* Mobile Header */}
+      <header className="md:hidden bg-[#0f172a] text-white/90 p-4 px-5 flex items-center justify-between sticky top-0 z-[60] backdrop-blur-xl border-b border-white/5">
+        <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate('/')}>
+          <img 
+            src={LOGO_DATA_URI} 
+            alt="Logo" 
+            className="h-5 w-5 transition-all duration-500" 
+            style={{ filter: `drop-shadow(0 0 8px ${currentTheme.glowColor})` }}
+          />
+          <span className={`font-black text-xs tracking-tighter uppercase transition-all duration-500 ${currentTheme.textColor}`}>
+            SecondServed
+          </span>
+        </div>
         <button 
-          onClick={() => setMobileMenuOpen(true)}
-          className="p-2.5 hover:bg-gray-50 rounded-xl transition-all active:scale-90 text-gray-400 hover:text-gray-900"
-          aria-label="Open Menu"
+          onClick={() => setIsMobileMenuOpen(true)} 
+          className="p-2 bg-white/5 rounded-lg active:scale-90 border border-white/5"
         >
-          <Menu size={28} strokeWidth={2.5} />
+          <Menu size={18} />
         </button>
       </header>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar / Mobile Drawer */}
-        <aside className={`
-          fixed inset-y-0 right-0 z-[60] w-80 bg-white shadow-2xl transform transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1)
-          ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}
-        `}>
-          <div className="h-full flex flex-col">
-            <div className="p-8 flex items-center justify-between">
-              <h2 className="font-black text-2xl text-gray-900">Menu</h2>
-              <button 
-                className="p-3 hover:bg-gray-100 rounded-2xl transition-colors" 
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <X size={24} className="text-gray-500" />
-              </button>
-            </div>
-
-            <nav className="flex-1 px-6 space-y-2">
-              <div className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] px-4 mb-4">Navigate MatchPoint</div>
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center justify-between px-6 py-4 rounded-2xl transition-all group ${
-                      isActive
-                        ? 'bg-emerald-50 text-emerald-700 font-black shadow-sm'
-                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-bold'
-                    }`
-                  }
-                >
-                  <div className="flex items-center gap-4">
-                    <item.icon size={22} className={location.pathname === item.to ? 'text-emerald-600' : 'text-gray-300 group-hover:text-gray-600'} />
-                    {item.label}
-                  </div>
-                  <ChevronRight size={18} className={`transition-opacity ${location.pathname === item.to ? 'opacity-100' : 'opacity-0'}`} />
-                </NavLink>
-              ))}
-            </nav>
-
-            <div className="p-8 border-t bg-gray-50/30">
-              <div className="flex items-center gap-4 mb-8">
-                <img 
-                  src={user?.avatarUrl || 'https://via.placeholder.com/48'} 
-                  alt="Profile" 
-                  className="w-14 h-14 rounded-full bg-white border-4 border-white shadow-xl"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-lg font-black text-gray-900 truncate">{user?.name}</p>
-                  <p className="text-xs text-emerald-600 font-black uppercase tracking-wider">{user?.skillLevel}</p>
-                </div>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center justify-center gap-2 px-6 py-4 text-red-600 bg-red-50 hover:bg-red-100 rounded-2xl transition-all text-sm font-black uppercase tracking-widest shadow-sm"
-              >
-                <LogOut size={18} />
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </aside>
-
-        {/* Backdrop for Menu */}
-        {mobileMenuOpen && (
-          <div 
-            className="fixed inset-0 bg-black/30 backdrop-blur-md z-[55] animate-in fade-in duration-500"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-        )}
-
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto h-[calc(100vh-73px)] relative">
-          <div className="max-w-5xl mx-auto p-6 pb-24 md:pb-6">
-            <Outlet />
-          </div>
-        </main>
-      </div>
-
-      {/* Mobile Bottom Bar (Keeping for UX convenience) */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 h-20 bg-white/95 backdrop-blur-xl border-t border-gray-100 px-8 flex items-center justify-around z-40 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)]">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.to;
-          return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className="flex flex-col items-center gap-1.5"
-            >
-              <div className={`p-2.5 rounded-2xl transition-all duration-300 ${
-                isActive ? 'bg-emerald-100 text-emerald-700 scale-110 shadow-sm' : 'text-gray-300'
-              }`}>
-                <item.icon size={22} strokeWidth={isActive ? 3 : 2} />
-              </div>
-              <span className={`text-[10px] font-black tracking-widest uppercase transition-colors ${
-                isActive ? 'text-emerald-700' : 'text-gray-400'
-              }`}>
-                {item.label}
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 bg-[#0f172a] z-[1000] p-5 pt-8 animate-in fade-in slide-in-from-right duration-400 flex flex-col">
+          <div className="flex justify-between items-center mb-10 px-1">
+            <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => { navigate('/'); setIsMobileMenuOpen(false); }}>
+              <img 
+                src={LOGO_DATA_URI} 
+                alt="Logo" 
+                className="h-6 w-6" 
+                style={{ filter: `drop-shadow(0 0 10px ${currentTheme.glowColor})` }}
+              />
+              <span className={`font-black text-sm tracking-tighter uppercase transition-colors duration-500 ${currentTheme.textColor}`}>
+                SecondServed
               </span>
-            </NavLink>
-          );
-        })}
-      </div>
+            </div>
+            <button 
+              onClick={() => setIsMobileMenuOpen(false)} 
+              className="p-2 bg-white/5 text-white rounded-xl active:scale-95 border border-white/10"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="flex-1 flex flex-col gap-3">
+             <p className="px-2 text-[8px] font-black text-gray-500 uppercase tracking-[0.5em] mb-1">Navigation</p>
+             {navItems.map((item) => {
+               const isActive = location.pathname.startsWith(item.path);
+               return (
+                <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center justify-between p-3 px-4 rounded-2xl transition-all duration-300 border ${
+                      isActive
+                        ? `${item.activeColor} text-white border-white/20 shadow-xl ${item.shadowColor} scale-[1.01]`
+                        : 'bg-white/5 text-gray-400 border-white/5'
+                    }`}
+                >
+                    <div className="flex items-center gap-3.5">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${isActive ? 'bg-white/10' : 'bg-white/5'}`}>
+                        <item.icon size={18} strokeWidth={isActive ? 3 : 2} />
+                      </div>
+                      <div>
+                        <span className="font-black text-xs uppercase tracking-[0.2em] block">{item.name}</span>
+                        <span className={`text-[8px] font-bold uppercase tracking-widest ${isActive ? 'text-white/60' : 'text-gray-500'}`}>{item.desc}</span>
+                      </div>
+                    </div>
+                    <ChevronRight size={14} className={isActive ? 'opacity-100' : 'opacity-20'} />
+                </NavLink>
+               );
+             })}
+          </div>
+
+          <div className="mt-auto pt-6 border-t border-white/5 space-y-4">
+             <div className="flex items-center gap-4 bg-white/5 p-3 rounded-2xl border border-white/5">
+                <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg bg-gray-900 border border-white/10 shrink-0">
+                    <ProfileSilhouette />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-white font-black uppercase text-[10px] tracking-wider truncate">{user?.name}</p>
+                    <p className={`text-[8px] font-black uppercase tracking-[0.2em] mt-0.5 transition-colors duration-500 ${currentTheme.textColor}`}>{user?.skillLevel}</p>
+                </div>
+                <div className="w-2 h-2 rounded-full animate-pulse transition-all duration-500 shadow-[0_0_8px_currentColor]" style={{ color: currentTheme.glowColor, backgroundColor: currentTheme.glowColor }}></div>
+             </div>
+             
+             <button
+              onClick={() => {
+                handleLogout();
+                setIsMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center justify-center gap-2.5 py-3.5 text-gray-500 border border-white/5 rounded-2xl font-black text-[10px] uppercase tracking-[0.4em] transition-all hover:text-red-400 active:scale-95"
+            >
+              <LogOut size={14} />
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <main className="flex-1 w-full relative min-h-screen">
+        <div className="p-4 md:p-10 max-w-7xl mx-auto w-full animate-in fade-in duration-500">
+            <Outlet />
+        </div>
+      </main>
     </div>
   );
 };

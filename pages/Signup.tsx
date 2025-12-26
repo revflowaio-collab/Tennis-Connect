@@ -1,10 +1,13 @@
-import React, { useState, useMemo } from 'react';
+
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
-import { Smartphone, KeyRound, MapPin, ChevronDown, Check, MessageSquare, X } from 'lucide-react';
+import { Smartphone, KeyRound, MapPin, Search, Check, MessageSquare, X, ArrowLeft } from 'lucide-react';
+import { LOGO_DATA_URI } from '../components/Layout';
 
-// Curated list of major US cities for the dropdown
+const BRAND_GREEN = "#059669";
+
 const MAJOR_CITIES = [
   "New York, NY", "Los Angeles, CA", "Chicago, IL", "Houston, TX", "Phoenix, AZ", 
   "Philadelphia, PA", "San Antonio, TX", "San Diego, CA", "Dallas, TX", "San Jose, CA",
@@ -35,23 +38,34 @@ export const Signup: React.FC = () => {
   const [showMockSms, setShowMockSms] = useState(false);
   
   // City search state
-  const [citySearch, setCitySearch] = useState('');
   const [isCityOpen, setIsCityOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const filteredCities = useMemo(() => {
-    if (!citySearch) return MAJOR_CITIES;
+    if (!formData.location || !isCityOpen) return [];
+    const query = formData.location.toLowerCase();
     return MAJOR_CITIES.filter(city => 
-      city.toLowerCase().includes(citySearch.toLowerCase())
-    );
-  }, [citySearch]);
+      city.toLowerCase().includes(query) && city.toLowerCase() !== query
+    ).slice(0, 5); 
+  }, [formData.location, isCityOpen]);
 
   const { signup, sendOtp, verifyOtp } = useAuth();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsCityOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.location) {
-        setError('Please select your City, State');
+        setError('Please enter your City, State');
         return;
     }
     setLoading(true);
@@ -89,53 +103,61 @@ export const Signup: React.FC = () => {
     }
   };
 
-  const inputClasses = "w-full bg-[#333333] border-none text-white px-4 py-3 rounded-xl focus:ring-2 focus:ring-emerald-500 placeholder-gray-500 transition-all";
-  const labelClasses = "block text-sm font-semibold text-gray-700 mb-1.5 ml-1";
+  const inputClasses = "w-full bg-white border border-gray-200 text-gray-900 px-4 py-3 rounded-xl focus:ring-2 focus:ring-emerald-500 placeholder-gray-300 transition-all shadow-sm outline-none text-sm font-medium";
+  const labelClasses = "block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-1.5";
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      
-      {/* Mock SMS Notification */}
+    <div className="min-h-screen bg-[#0f172a] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+
+      <Link 
+        to="/" 
+        className="absolute top-6 left-6 p-2.5 rounded-xl hover:bg-white/5 text-gray-400 hover:text-white transition-all active:scale-90 group z-50 flex items-center gap-2"
+        aria-label="Back to home"
+      >
+        <ArrowLeft size={20} strokeWidth={3} className="group-hover:-translate-x-1 transition-transform" />
+      </Link>
+
       {showMockSms && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-50 animate-in slide-in-from-top duration-500">
-            <div className="bg-white/90 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-2xl p-4 flex items-start gap-4 ring-1 ring-black/5">
-                <div className="bg-blue-500 p-2 rounded-xl text-white shrink-0">
-                    <MessageSquare size={20} />
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 w-[90%] max-w-xs z-[100] animate-in slide-in-from-top duration-500">
+            <div className="bg-white/95 backdrop-blur-xl border border-gray-100 shadow-2xl rounded-2xl p-4 flex items-start gap-4 ring-1 ring-black/5">
+                <div className="bg-blue-500 p-2 rounded-xl text-white shrink-0 shadow-lg">
+                    <MessageSquare size={18} />
                 </div>
-                <div className="flex-1">
-                    <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Messages</span>
-                        <span className="text-[10px] text-gray-400">now</span>
-                    </div>
-                    <p className="text-sm text-gray-800 font-medium">
-                        <span className="font-bold">MatchPoint:</span> Your verification code is <span className="text-emerald-600 font-black tracking-widest text-base">123456</span>
+                <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-800 font-medium">
+                        SecondServed: Your code is <span className="text-emerald-600 font-black">123456</span>
                     </p>
                 </div>
-                <button onClick={() => setShowMockSms(false)} className="text-gray-400 hover:text-gray-600">
-                    <X size={16} />
+                <button onClick={() => setShowMockSms(false)} className="text-gray-400 hover:text-gray-900">
+                    <X size={14} />
                 </button>
             </div>
         </div>
       )}
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md mb-8">
-        <h2 className="text-center text-[40px] font-black text-[#0f172a] leading-tight">
-          Create your account
-        </h2>
-        <p className="mt-3 text-center text-base font-medium text-gray-500">
-          Already have an account?{' '}
-          <Link to="/login" className="text-emerald-600 hover:text-emerald-500 font-bold underline-offset-4 hover:underline transition-all">
-            Sign in
-          </Link>
+      <div className="sm:mx-auto sm:w-full sm:max-w-md mb-8 text-center relative z-10">
+        <div className="flex justify-center mb-5">
+            <img 
+                src={LOGO_DATA_URI} 
+                alt="Logo"
+                onClick={() => navigate('/')}
+                className="h-16 w-auto cursor-pointer hover:scale-110 active:scale-95 transition-all drop-shadow-xl"
+            />
+        </div>
+        <h2 className="text-3xl font-black text-white leading-tight tracking-tight">Join the Club</h2>
+        <p className="mt-2 text-sm font-medium text-gray-400">
+          Already a member? <Link to="/login" className="text-emerald-400 hover:text-emerald-300 font-bold transition-all">Sign in</Link>
         </p>
       </div>
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-10 px-6 sm:px-10 border border-gray-100/50 shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[2.5rem]">
+      <div className="sm:mx-auto sm:w-full sm:max-w-sm relative z-10">
+        <div className="bg-white py-10 px-6 sm:px-8 border border-gray-100 rounded-[1.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5)]">
             {step === 'DETAILS' ? (
-                <form className="space-y-6" onSubmit={handleSendOtp}>
+                <form className="space-y-5" onSubmit={handleSendOtp}>
                     <div>
-                        <label className={labelClasses}>Name</label>
+                        <label className={labelClasses}>Full Name</label>
                         <input
                             type="text"
                             required
@@ -148,145 +170,123 @@ export const Signup: React.FC = () => {
 
                     <div>
                         <label className={labelClasses}>Phone Number</label>
-                        <div className="relative">
-                            <input
-                                type="tel"
-                                required
-                                className={`${inputClasses} pr-12`}
-                                value={formData.phoneNumber}
-                                onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
-                                placeholder="+1 (555) 000-0000"
-                            />
-                            <div className="absolute inset-y-0 right-4 flex items-center text-gray-400">
-                                <Smartphone size={20} strokeWidth={1.5} />
-                            </div>
-                        </div>
+                        <input
+                            type="tel"
+                            required
+                            className={inputClasses}
+                            value={formData.phoneNumber}
+                            onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
+                            placeholder="+1 (555) 000-0000"
+                        />
                     </div>
 
-                    <div className="relative">
+                    <div className="relative" ref={dropdownRef}>
                         <label className={labelClasses}>City, State</label>
-                        <div 
-                            className={`${inputClasses} flex items-center justify-between cursor-pointer ${formData.location ? 'text-white' : 'text-gray-500'}`}
-                            onClick={() => setIsCityOpen(!isCityOpen)}
-                        >
-                            <span>{formData.location || "Select your location"}</span>
-                            <ChevronDown size={20} className={`transition-transform duration-300 ${isCityOpen ? 'rotate-180' : ''}`} />
+                        <div className="relative">
+                            <input
+                                type="text"
+                                required
+                                className={`${inputClasses} pr-10`}
+                                value={formData.location}
+                                autoComplete="off"
+                                onFocus={() => setIsCityOpen(true)}
+                                onChange={(e) => {
+                                    setFormData({...formData, location: e.target.value});
+                                    setIsCityOpen(true);
+                                }}
+                                placeholder="Start typing your city..."
+                            />
+                            <div className="absolute inset-y-0 right-3 flex items-center text-gray-300 pointer-events-none">
+                                <Search size={16} />
+                            </div>
                         </div>
 
-                        {isCityOpen && (
-                            <div className="absolute bottom-full mb-2 left-0 right-0 bg-[#333333] rounded-2xl shadow-2xl border border-white/10 z-50 overflow-hidden animate-in zoom-in-95 fade-in duration-200">
-                                <div className="p-3 border-b border-white/5">
-                                    <div className="relative">
-                                        <input 
-                                            type="text"
-                                            className="w-full bg-[#444444] border-none text-sm text-white px-3 py-2 rounded-lg focus:ring-1 focus:ring-emerald-500"
-                                            placeholder="Search cities..."
-                                            autoFocus
-                                            value={citySearch}
-                                            onChange={(e) => setCitySearch(e.target.value)}
-                                            onClick={(e) => e.stopPropagation()}
-                                        />
+                        {isCityOpen && filteredCities.length > 0 && (
+                            <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                {filteredCities.map((city) => (
+                                    <div 
+                                        key={city}
+                                        className="px-4 py-3 text-sm text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 cursor-pointer transition-colors flex items-center justify-between group"
+                                        onClick={() => {
+                                            setFormData({...formData, location: city});
+                                            setIsCityOpen(false);
+                                        }}
+                                    >
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-gray-900 group-hover:text-emerald-700">{city}</span>
+                                            <span className="text-[10px] text-gray-400 uppercase tracking-widest font-black">Major City</span>
+                                        </div>
+                                        <Check size={14} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                                     </div>
-                                </div>
-                                <div className="max-h-60 overflow-y-auto custom-scrollbar">
-                                    {filteredCities.map(city => (
-                                        <div 
-                                            key={city}
-                                            className="px-4 py-3 text-sm text-gray-300 hover:bg-emerald-600 hover:text-white cursor-pointer transition-colors flex items-center justify-between group"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setFormData({...formData, location: city});
-                                                setIsCityOpen(false);
-                                                setCitySearch('');
-                                            }}
-                                        >
-                                            {city}
-                                            {formData.location === city && <Check size={16} className="text-emerald-400 group-hover:text-white" />}
-                                        </div>
-                                    ))}
-                                    {filteredCities.length === 0 && (
-                                        <div className="px-4 py-8 text-center text-gray-500 text-sm">
-                                            No cities found
-                                        </div>
-                                    )}
-                                </div>
+                                ))}
                             </div>
                         )}
                     </div>
 
-                    {error && (
-                        <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-left-4">
-                            <div className="w-2 h-2 rounded-full bg-red-500" />
-                            <p className="text-sm font-bold text-red-800">{error}</p>
-                        </div>
-                    )}
+                    {error && <p className="text-[10px] font-bold text-red-500 ml-1">{error}</p>}
 
-                    <Button type="submit" className="w-full py-4 text-base font-bold rounded-2xl bg-[#059669] hover:bg-[#047857] shadow-lg shadow-emerald-200 transition-all active:scale-[0.98]" isLoading={loading}>
-                        Continue
+                    <Button type="submit" className="w-full py-4 text-sm font-black uppercase tracking-widest rounded-xl bg-[#059669] hover:bg-[#047857] shadow-xl shadow-emerald-500/20" isLoading={loading}>
+                        Create Account
                     </Button>
+                    
+                    {/* Legal Notice inside the white box */}
+                    <div className="mt-4 text-center">
+                        <p className="text-gray-400 text-[11px] font-medium leading-relaxed tracking-wide">
+                            By signing up, you agree to the <br />
+                            <Link to="/terms" className="underline decoration-gray-300 hover:text-emerald-600 transition-colors">Terms of Service</Link> & <Link to="/privacy" className="underline decoration-gray-300 hover:text-emerald-600 transition-colors">Privacy Policy</Link>
+                        </p>
+                    </div>
                 </form>
             ) : (
                 <form className="space-y-6" onSubmit={handleVerifyAndSignup}>
                     <div>
                         <label className={labelClasses}>Verification Code</label>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                required
-                                value={otp}
-                                onChange={(e) => setOtp(e.target.value)}
-                                placeholder="123456"
-                                maxLength={6}
-                                className={`${inputClasses} tracking-[1em] text-center text-2xl font-black py-5`}
-                                autoFocus
-                            />
-                             <div className="absolute inset-y-0 right-4 flex items-center text-gray-400 pointer-events-none">
-                                <KeyRound size={20} />
-                            </div>
-                        </div>
-                        <p className="text-center text-xs text-gray-400 mt-2 font-medium">Enter the code sent to {formData.phoneNumber}</p>
+                        <input
+                            type="text"
+                            required
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            placeholder="123456"
+                            maxLength={6}
+                            className={`${inputClasses} tracking-[0.8em] text-center text-2xl font-black py-5`}
+                            autoFocus
+                        />
+                        <p className="text-center text-[10px] text-gray-400 mt-2 font-bold uppercase tracking-wider">Sent to {formData.phoneNumber}</p>
                     </div>
 
-                    {error && (
-                        <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3">
-                            <div className="w-2 h-2 rounded-full bg-red-500" />
-                            <p className="text-sm font-bold text-red-800">{error}</p>
-                        </div>
-                    )}
+                    {error && <p className="text-[10px] font-bold text-red-500 text-center">{error}</p>}
 
-                    <div className="space-y-4">
-                        <Button type="submit" className="w-full py-4 text-base font-bold rounded-2xl bg-emerald-600 hover:bg-emerald-700" isLoading={loading}>
-                            Verify & Create Account
+                    <div className="space-y-3">
+                        <Button type="submit" className="w-full py-4 text-sm font-black uppercase tracking-widest rounded-xl bg-[#059669] hover:bg-[#047857] shadow-xl shadow-emerald-500/20" isLoading={loading}>
+                            Verify & Join
                         </Button>
                          <button 
                             type="button"
                             onClick={() => { setStep('DETAILS'); setError(''); setShowMockSms(false); }}
-                            className="w-full text-center text-sm font-bold text-gray-400 hover:text-emerald-600 transition-colors py-2"
+                            className="w-full text-center text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-emerald-600 transition-colors py-2"
                         >
                             Edit details
                         </button>
                     </div>
+                    
+                    {/* Legal Notice inside the white box for OTP step too */}
+                    <div className="mt-4 text-center">
+                        <p className="text-gray-400 text-[11px] font-medium leading-relaxed tracking-wide">
+                            By signing up, you agree to the <br />
+                            <Link to="/terms" className="underline decoration-gray-300 hover:text-emerald-600 transition-colors">Terms of Service</Link> & <Link to="/privacy" className="underline decoration-gray-300 hover:text-emerald-600 transition-colors">Privacy Policy</Link>
+                        </p>
+                    </div>
                 </form>
             )}
         </div>
+
+        {/* Support link remains in the dark area outside the white box */}
+        <div className="mt-8 text-center animate-in fade-in slide-in-from-bottom-2 duration-700 delay-300">
+            <p className="text-gray-400 text-xs font-semibold tracking-wider">
+                Need help? <a href="tel:7147860139" className="underline decoration-gray-600 hover:text-white transition-colors">Text or Call Support</a>
+            </p>
+        </div>
       </div>
-      
-      {/* Styles for the custom scrollbar in dropdown */}
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #333333;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #444444;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #555555;
-        }
-      `}</style>
     </div>
   );
 };

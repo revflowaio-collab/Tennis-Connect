@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -9,6 +10,8 @@ import { Courts } from './pages/Courts';
 import { CourtDetail } from './pages/CourtDetail';
 import { Players } from './pages/Players';
 import { Profile } from './pages/Profile';
+import { TermsOfService } from './pages/TermsOfService';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }: { children?: React.ReactNode }) => {
@@ -42,6 +45,8 @@ const AppRoutes = () => {
       <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
       
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route path="courts" element={<Courts />} />
