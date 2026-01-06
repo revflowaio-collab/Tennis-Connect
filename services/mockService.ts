@@ -110,31 +110,69 @@ let courts = [...MOCK_COURTS];
 let checkIns: CheckIn[] = [
   { userId: 'u1', courtId: 'c1', timestamp: new Date().toISOString() },
   { userId: 'u2', courtId: 'c1', timestamp: new Date().toISOString() },
-  { userId: 'u1', courtId: 'c3', timestamp: new Date(Date.now() - 86400000).toISOString() }, // Yesterday
 ];
 
-// Service Methods
 export const MockService = {
-  getCourts: async (): Promise<Court[]> => {
-    await new Promise(r => setTimeout(r, 500)); // Simulate latency
-    return courts.map(c => ({
+  getCourts: async (query?: string): Promise<Court[]> => {
+    await new Promise(r => setTimeout(r, query ? 800 : 300));
+    
+    let results = courts.map(c => ({
       ...c,
       playerCount: checkIns.filter(ci => ci.courtId === c.id && isRecent(ci.timestamp)).length
     }));
+
+    if (query) {
+      const q = query.toLowerCase().trim();
+      results = results.filter(c => 
+        c.name.toLowerCase().includes(q) || 
+        c.address.toLowerCase().includes(q)
+      );
+
+      // If it looks like a 5-digit ZIP and no results found, "discover" a court there
+      if (results.length === 0 && /^\d{5}$/.test(q)) {
+        const discoveredCourt: Court = {
+            id: `discovered-${Date.now()}`,
+            name: `Local Community Court (${q})`,
+            address: `Main Street, Area ${q}`,
+            surfaceType: "Hard",
+            hours: "7am - 9pm",
+            playerCount: Math.floor(Math.random() * 4),
+            amenities: ["Water", "Restrooms"],
+            description: "A newly discovered local court in your searched area.",
+            imageUrl: `https://picsum.photos/800/400?random=${Math.floor(Math.random() * 100)}`,
+            lat: 40.7128 + (Math.random() - 0.5) * 0.1, // Near NY if nothing else
+            lng: -74.0060 + (Math.random() - 0.5) * 0.1
+        };
+        results = [discoveredCourt];
+      }
+    }
+
+    return results;
   },
 
   getCourtById: async (id: string): Promise<Court | undefined> => {
-    await new Promise(r => setTimeout(r, 300));
-    return courts.find(c => c.id === id);
+    await new Promise(r => setTimeout(r, 200));
+    return courts.find(c => c.id === id) || (id.startsWith('discovered-') ? {
+        id,
+        name: "Discovered Community Court",
+        address: "Nearby Area",
+        surfaceType: "Hard",
+        hours: "7am - 9pm",
+        playerCount: 1,
+        amenities: ["Water"],
+        description: "A public court found near your searched area.",
+        imageUrl: "https://picsum.photos/800/400?random=99",
+        lat: 40.7,
+        lng: -74
+    } as Court : undefined);
   },
 
   getPlayers: async (): Promise<User[]> => {
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 400));
     return users;
   },
 
   getActiveCheckInsForCourt: async (courtId: string): Promise<User[]> => {
-    await new Promise(r => setTimeout(r, 300));
     const recentCheckIns = checkIns.filter(ci => ci.courtId === courtId && isRecent(ci.timestamp));
     return recentCheckIns
       .map(ci => users.find(u => u.id === ci.userId))
@@ -142,61 +180,26 @@ export const MockService = {
   },
 
   checkIn: async (userId: string, courtId: string): Promise<void> => {
-    await new Promise(r => setTimeout(r, 300));
-    // Remove previous active check-in for this user to avoid duplicates
     checkIns = checkIns.filter(ci => !(ci.userId === userId && isRecent(ci.timestamp)));
     checkIns.push({ userId, courtId, timestamp: new Date().toISOString() });
   },
 
-  // Auth Methods
-  sendOtp: async (phoneNumber: string): Promise<boolean> => {
-    await new Promise(r => setTimeout(r, 800));
-    // In a real app, this sends SMS. Here we just accept any number.
-    return true; 
-  },
-
-  verifyOtp: async (phoneNumber: string, otp: string): Promise<boolean> => {
-    await new Promise(r => setTimeout(r, 800));
-    // Hardcoded OTP for demo
-    return otp === '123456';
-  },
-
-  login: async (phoneNumber: string): Promise<User> => {
-    await new Promise(r => setTimeout(r, 500));
-    const user = users.find(u => u.phoneNumber === phoneNumber);
-    if (!user) throw new Error("User not found");
-    return user;
-  },
-
-  signup: async (data: Omit<User, 'id' | 'joinedAt'>): Promise<User> => {
-    await new Promise(r => setTimeout(r, 800));
-    const existing = users.find(u => u.phoneNumber === data.phoneNumber);
-    if (existing) throw new Error("User already exists");
-
-    const newUser: User = {
-      ...data,
-      id: `u${users.length + 1}`,
-      joinedAt: new Date().toISOString(),
-      avatarUrl: `https://picsum.photos/100/100?random=${users.length + 20}`
-    };
+  sendOtp: async (phoneNumber: string) => true,
+  verifyOtp: async (phoneNumber: string, otp: string) => otp === '123456',
+  login: async (phoneNumber: string) => users.find(u => u.phoneNumber === phoneNumber)!,
+  signup: async (data: any) => {
+    const newUser = { ...data, id: `u${users.length + 1}`, joinedAt: new Date().toISOString(), avatarUrl: `https://picsum.photos/100/100?random=${users.length}` };
     users.push(newUser);
     return newUser;
   },
-  
-  updateProfile: async (userId: string, data: Partial<User>): Promise<User> => {
-      await new Promise(r => setTimeout(r, 500));
-      const index = users.findIndex(u => u.id === userId);
-      if (index === -1) throw new Error("User not found");
-      
-      users[index] = { ...users[index], ...data };
-      return users[index];
+  updateProfile: async (userId: string, data: any) => {
+    const idx = users.findIndex(u => u.id === userId);
+    users[idx] = { ...users[idx], ...data };
+    return users[idx];
   }
 };
 
-// Helper to check if check-in is recent (e.g., last 3 hours)
 const isRecent = (isoString: string) => {
-  const date = new Date(isoString);
-  const now = new Date();
-  const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+  const diffHours = (new Date().getTime() - new Date(isoString).getTime()) / (1000 * 60 * 60);
   return diffHours < 3;
 };

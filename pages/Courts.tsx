@@ -3,7 +3,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Court } from '../types';
 import { MockService } from '../services/mockService';
-import { MapPin, Users, Search, X } from 'lucide-react';
+import { MapPin, Users, Search, X, Map as MapIcon, RotateCcw, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -13,7 +13,7 @@ const BRAND_GREEN = "#059669";
 function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
   useEffect(() => {
-    map.setView([lat, lng], 13);
+    map.flyTo([lat, lng], 13, { duration: 1.5 });
   }, [lat, lng, map]);
   return null;
 }
@@ -21,16 +21,25 @@ function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
 export const Courts: React.FC = () => {
   const [courts, setCourts] = useState<Court[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
   const [search, setSearch] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const navigate = useNavigate();
 
+  const fetchCourts = useCallback(async (query?: string) => {
+    if (query) setIsSearching(true);
+    const data = await MockService.getCourts(query);
+    setCourts(data);
+    setLoading(false);
+    setIsSearching(false);
+    
+    // If results found, center map on first result
+    if (data.length > 0) {
+        setUserLocation({ lat: data[0].lat, lng: data[0].lng });
+    }
+  }, []);
+
   useEffect(() => {
-    const fetchCourts = async () => {
-      const data = await MockService.getCourts();
-      setCourts(data);
-      setLoading(false);
-    };
     fetchCourts();
 
     if (navigator.geolocation) {
@@ -42,34 +51,21 @@ export const Courts: React.FC = () => {
           });
         },
         () => {
-          // Default to NYC
           setUserLocation({ lat: 40.785091, lng: -73.968285 });
         }
       );
     } else {
         setUserLocation({ lat: 40.785091, lng: -73.968285 });
     }
-  }, []);
+  }, [fetchCourts]);
 
-  const filteredCourts = courts.filter(c => 
-    c.name.toLowerCase().includes(search.toLowerCase()) || 
-    c.address.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const handleSearchTrigger = useCallback(() => {
-    if (!search) return;
-    
-    // Find first match to "query" the map location
-    const firstMatch = filteredCourts[0];
-    if (firstMatch) {
-      setUserLocation({ lat: firstMatch.lat, lng: firstMatch.lng });
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!search.trim()) {
+        fetchCourts();
+        return;
     }
-  }, [search, filteredCourts]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearchTrigger();
-    }
+    fetchCourts(search);
   };
 
   const createCustomIcon = (playerCount: number) => {
@@ -83,7 +79,7 @@ export const Courts: React.FC = () => {
                 <circle cx="20" cy="19" r="6" fill="${BRAND_GREEN}"/>
             </svg>
             ${playerCount > 0 ? `
-                <div class="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[#ef4444] rounded-full text-white text-[8px] font-black flex items-center justify-center border-2 border-white px-1 shadow-md">
+                <div class="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[#ef4444] rounded-full text-white text-[8px] font-black flex items-center justify-center border-2 border-white px-1 shadow-md animate-bounce">
                     ${playerCount}
                 </div>
             ` : ''}
@@ -97,21 +93,16 @@ export const Courts: React.FC = () => {
 
   const UserLocationIcon = L.divIcon({
       className: 'custom-marker-icon',
-      html: `
-        <div class="relative flex items-center justify-center">
-            <div class="absolute w-8 h-8 bg-blue-500/20 rounded-full animate-ping"></div>
-            <div class="w-4 h-4 bg-white rounded-full border-[4px] border-blue-500 shadow-2xl"></div>
-        </div>
-      `,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16]
+      html: `<div class="w-4 h-4 bg-white rounded-full border-[4px] border-blue-500 shadow-2xl"></div>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8]
   });
 
   if (loading || !userLocation) {
     return (
-        <div className="flex flex-col justify-center items-center h-full gap-3">
-            <div className="animate-spin h-8 w-8 border-4 border-emerald-500 rounded-full border-t-transparent"></div>
-            <p className="text-gray-400 font-black uppercase tracking-widest text-[10px]">Locating...</p>
+        <div className="flex flex-col justify-center items-center h-full gap-3 py-20">
+            <Loader2 className="animate-spin h-10 w-10 text-emerald-500" />
+            <p className="text-gray-400 font-black uppercase tracking-widest text-[10px]">Preparing Courts...</p>
         </div>
     );
   }
@@ -119,41 +110,86 @@ export const Courts: React.FC = () => {
   return (
     <div className="h-full flex flex-col space-y-6 pb-6">
       <div className="space-y-4">
-        <div className="text-center sm:text-left">
-          <h1 className="text-3xl font-black text-[#0f172a] tracking-tighter mb-1 uppercase">Courts</h1>
-          <p className="text-gray-400 font-black uppercase tracking-[0.2em] text-[9px]">Discover play spots nearby</p>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div className="text-center sm:text-left">
+                <h1 className="text-3xl font-black text-[#0f172a] tracking-tighter mb-1 uppercase">Courts</h1>
+                <p className="text-gray-400 font-black uppercase tracking-[0.2em] text-[9px]">Discover play spots nearby</p>
+            </div>
+            {courts.length > 0 && (
+                <div className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 self-center sm:self-auto border border-emerald-100 transition-all animate-in fade-in slide-in-from-right-2">
+                    <MapIcon size={12} />
+                    {courts.length} Courts Available
+                </div>
+            )}
         </div>
         
-        <div className="relative w-full max-w-xl mx-auto sm:mx-0 flex gap-2">
+        <form onSubmit={handleSearchSubmit} className="relative w-full max-w-xl mx-auto sm:mx-0 flex gap-2">
             <div className="relative flex-1">
                 <input 
                     type="text"
-                    placeholder="Search city or ZIP..." 
+                    placeholder="Search by ZIP (e.g. 94117) or Name..." 
                     value={search} 
                     onChange={(e) => setSearch(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    className="w-full pl-10 pr-10 py-3 rounded-xl border border-gray-100 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-sm font-bold text-sm text-gray-700 placeholder:text-gray-300"
+                    className="w-full pl-10 pr-10 py-3.5 rounded-xl border border-gray-100 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-sm font-bold text-sm text-gray-700 placeholder:text-gray-300"
                 />
-                <Search className="absolute top-[11px] left-3.5 text-gray-300" size={16} strokeWidth={2.5} />
+                <Search className="absolute top-[14px] left-3.5 text-gray-300" size={16} strokeWidth={2.5} />
                 {search && (
                     <button 
-                        onClick={() => setSearch('')}
-                        className="absolute top-[11px] right-3 text-gray-300 hover:text-gray-500 transition-colors"
+                        type="button"
+                        onClick={() => { setSearch(''); fetchCourts(); }}
+                        className="absolute top-[14px] right-3 text-gray-300 hover:text-gray-500 transition-colors"
                     >
                         <X size={16} />
                     </button>
                 )}
             </div>
             <Button 
-                onClick={handleSearchTrigger}
-                className="rounded-xl px-6 font-black uppercase tracking-widest text-[10px] bg-emerald-600 hover:bg-emerald-700 shadow-lg"
+                type="submit"
+                isLoading={isSearching}
+                className="rounded-xl px-8 font-black uppercase tracking-widest text-[10px] bg-emerald-600 hover:bg-emerald-700 shadow-lg"
             >
                 Search
             </Button>
-        </div>
+        </form>
       </div>
 
       <div className="relative flex-1 min-h-[400px] h-[60vh] rounded-[2rem] overflow-hidden border-4 border-white shadow-2xl bg-gray-50">
+        
+        {/* Searching Overlay */}
+        {isSearching && (
+            <div className="absolute inset-0 z-[2000] flex flex-col items-center justify-center bg-emerald-950/20 backdrop-blur-[2px] animate-in fade-in duration-300">
+                <div className="bg-white p-6 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-emerald-100">
+                    <div className="relative">
+                        <Loader2 className="w-10 h-10 text-emerald-600 animate-spin" />
+                        <MapPin className="absolute inset-0 m-auto text-emerald-400 w-4 h-4" />
+                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-900">Scanning Area...</p>
+                </div>
+            </div>
+        )}
+
+        {/* Empty State */}
+        {courts.length === 0 && !isSearching && (
+            <div className="absolute inset-0 z-[1000] flex items-center justify-center p-6 text-center backdrop-blur-sm bg-white/60 animate-in fade-in duration-300">
+                <div className="max-w-xs space-y-4">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-gray-300">
+                        <Search size={32} />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-black text-gray-900 uppercase tracking-tighter">No Matches</h3>
+                        <p className="text-xs text-gray-500 font-medium leading-relaxed">Try searching for a different ZIP code or check back later.</p>
+                    </div>
+                    <Button 
+                        onClick={() => { setSearch(''); fetchCourts(); }}
+                        variant="secondary"
+                        className="w-full rounded-xl py-2.5 font-black uppercase tracking-widest text-[10px]"
+                    >
+                        <RotateCcw size={14} className="mr-2" /> Show All
+                    </Button>
+                </div>
+            </div>
+        )}
+
         <MapContainer 
             center={[userLocation.lat, userLocation.lng]} 
             zoom={12} 
@@ -167,21 +203,19 @@ export const Courts: React.FC = () => {
             />
             <RecenterMap lat={userLocation.lat} lng={userLocation.lng} />
 
-            <Marker position={[userLocation.lat, userLocation.lng]} icon={UserLocationIcon}>
-                 <Popup>Location</Popup>
-            </Marker>
+            <Marker position={[userLocation.lat, userLocation.lng]} icon={UserLocationIcon} />
 
-            {filteredCourts.map((court) => (
+            {courts.map((court) => (
                 <Marker 
                     key={court.id} 
                     position={[court.lat, court.lng]}
                     icon={createCustomIcon(court.playerCount)}
                 >
                     <Popup className="custom-popup">
-                        <div className="w-full bg-white rounded-2xl overflow-hidden shadow-2xl">
+                        <div className="w-full bg-white rounded-2xl overflow-hidden shadow-2xl border border-gray-100">
                             <div className="h-24 w-full relative">
                                 <img src={court.imageUrl} className="w-full h-full object-cover" alt={court.name} />
-                                <div className="absolute top-2 right-2 bg-[#059669] text-white px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest shadow-lg">{court.surfaceType}</div>
+                                <div className="absolute top-2 right-2 bg-emerald-600 text-white px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest shadow-lg">{court.surfaceType}</div>
                             </div>
                             <div className="p-4">
                                 <h3 className="font-black text-gray-900 text-sm mb-0.5 leading-tight">{court.name}</h3>
@@ -194,7 +228,7 @@ export const Courts: React.FC = () => {
                                     </div>
                                 </div>
                                 <Button 
-                                    className="w-full py-2.5 rounded-xl bg-[#059669] hover:bg-[#047857] text-white font-black uppercase tracking-widest text-[9px] shadow-lg shadow-emerald-200"
+                                    className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-[9px] shadow-lg shadow-emerald-200"
                                     onClick={() => navigate(`/court/${court.id}`)}
                                 >
                                     Details
@@ -209,10 +243,10 @@ export const Courts: React.FC = () => {
       
       <style>{`
         .map-tiles {
-            filter: grayscale(1) contrast(1.1) brightness(0.98);
+            filter: grayscale(0.8) contrast(1.1) brightness(0.98);
         }
         .leaflet-container {
-            background-color: #f1f5f9 !important;
+            background-color: #f8fafc !important;
         }
         .custom-popup .leaflet-popup-content-wrapper {
             padding: 0;
